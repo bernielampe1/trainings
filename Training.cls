@@ -7,8 +7,10 @@
 
 % We define the macro for the name of the professor
 \newcommand{\professor}[1]{ \newcommand{\professorloc}{#1} }
+
 % We define the macro for the name of the course
 \newcommand{\class}[1]{ \newcommand{\classlocal}{#1} }
+
 % We define the macro for the name of the institution
 \newcommand{\institute}[1]{ \newcommand{\instituteloc}{#1} }
 
@@ -24,7 +26,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% Options
-%%%% We now pass the options of the class
 
 % Two Columns are difficult to read and grade, we will not use them
 \DeclareOption{twocolumn}{\OptionNotUsed}
@@ -40,18 +41,10 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% Bulk Declarations
-%%%% Here we do more declarations and call other files
-
-
-% we need to load 
 \LoadClass{article}
 
-
-% we will modify sections, subsections and sub subsections
 \RequirePackage{titlesec}
-% Modification of section 
-\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection.}{.3cm}{} 
+\titleformat{\section}[block]{\large\bfseries}{\thesection.}{.3cm}{} 
 
 % modification of subsection and sub sub section
 \titleformat{\subsection}[runin]{\bfseries}{ \thesubsection.}
@@ -91,10 +84,10 @@
     \end{center}
 }
 
-% definition of the "problem" environment
+% Definition of the "section" environment
 \newsavebox{\problembox}
-\newenvironment{problem}
+\newenvironment{sectionbox}
     {\begin{center} \begin{lrbox}{\problembox}\begin{minipage}{.98\textwidth}}
     {\end{minipage}\end{lrbox}\fbox{\usebox{\problembox}} \end{center} }
-
 \endinput
+
