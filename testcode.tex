@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\begin{document}
+
+%\begin{lstlisting}[language=C]
+%int main(int argc, char **argv)
+%{
+%	print("hello world\n");
+%	return 0;
+%}
+%\end{lstlisting}
+
+\lstset{
+    basicstyle=\ttfamily,
+    frame=tblr,
+    numbers=left,
+    tabsize=4,
+    keywordstyle=\color{blue}\ttfamily,
+    stringstyle=\color{red}\ttfamily,
+    commentstyle=\color{green}\ttfamily,
+    morecomment=[l][\color{magenta}]{\#}
+}
+\begin{lstlisting}[language=C, caption={C Code Listing}]
+#include<stdio.h>
+// A comment
+int main(void)
+{
+	printf("Hello World\n");
+	return 0;
+}
+\end{lstlisting}
+
+\end{document}
