@@ -1,7 +1,12 @@
 * Source auditing techniques
     The primary skill is idenifying which code is relevant / reachable and most likely vulnerable. Answering the questions of "Where should I spend my time auditing?"
 
+	But first you must learn to read code and find the common bug patterns. Some bug patterns will be specific to the language, others will be inherent to the way that software is designed.
+
     Source auditing versus black box testing and reversing
+    Complexity of problems solved (parsing, etc)
+    Code smell / style
+    Find components and then look at boundaries
     Track down all abstractions meanings
     Large number of false positives versus fuzzing
         - Only audit code which you know is compiled in and reachable

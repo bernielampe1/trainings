@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%  Author: Bernard Lampe
-%  Copyright: Raytheon CODEX 2019
-%  Source auditing lecture material
+%         Author: Bernard Lampe
+%     Copyright: Raytheon CODEX 2019
+%    Source auditing lecture material
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % import template
@@ -22,7 +22,7 @@
 % set document info
 \title{Source Auditing Lecture Material}
 \author{Dr. Bernard Lampe}
-\class{Introduction to vulnerability research}
+\class{Introduction to Vulnerability Research}
 \institute{Raytheon CODEX}
 \date{September 24th, 2019}
 
@@ -50,11 +50,68 @@
 %----------------------------------------------------------------------------------------
 
 \section*{Introduction}
+\begin{enumerate}
+	\item The primary skill of source code auditing is identifying which code may be vulnerable and is reachable from an exposed attack surfce. Experienced code auditors are continually asking themselves the following questions:
+		\begin{enumerate}
+			\item "Where should the limited time auditing be spent to maximize the chances of bug discovery?"
+		 	\item "What pieces of code should be checked thoroughly and which can be ignored?"
+		 	\item "Upon finding a bug, should more time be spent exploring to find more bugs, or should the focus turn to exploitation of the current set of bugs? (Exploration versus Exploitation Tradeoff).
+		\end{enumerate}
+	\item Large code basis make these questions difficult to answer. However, an experienced auditor will perform a thorough attack surface analysis and follow the logical flow of attacker data understanding and verifying each use of the data. General guidance to follow when starting any security audit is:
+	\begin{enumerate}
+		\item Learn to read target language (C, C++, PHP, Java, etc).
+		\item Know common bug patterns in the target language.
+		\item Break software into parts, looking at API's.
+		\item Research existing CVE's and public research about the target.
+		\item Get a feel for the code style and find places the style is violated.
+		\item Track down documentation (RFC's, user manuals, client software, source leaks, bug trackers, code repositories/logs, etc).
+	\end{enumerate}
+\end{enumerate}
+
+\section*{Comparing Source Auditing to other Security Analysis Techniques}
+\begin{enumerate}
+	\item Searching for vulnerabilities can be done using static or dynamic analysis. Static analysis includes source code auditing and binary reverse engineering. Dynamic analysis includes fuzz testing and debugging among other more advanced techniques. *See www.fuzzingbook.org.
+	\item Dynamic analysis
+		\begin{enumerate}
+			\item Very few false positives
+			\item False negative rate can be reduced by adding code coverage, feedback fuzzing or memory sanitizers
+			\item Scaling can be done by adding more processing time
+			\item Progress can be made using blackbox methods
+			\item Able to find non-obvious bugs which utilize code from disparate parts of the source code base. This can make root causing hard.
+			\item Hard to find logic bugs
+		\end{enumerate}
+	\item Static analysis:
+		\begin{enumerate}
+			\item Many more false positives especially with automated tools
+			\item False negative rate is a function of the auditors understanding of the attack surface and code base
+			\item Requires considerable computational resources to scale
+			\item Progress requires considerable internal target knowledge
+			\item Bugs found here typically include code which is localized about one area of the target. 
+			\item Source auditing can find non-memory corruption bugs (non-crashing) which are missed by fuzzing techniques.
+		\end{enumerate}
+\end{enumerate}
+
+\section*{Utilizing Open Source Information}
+% stalk bad devs
+% read all comments
+% google for CVE's - tells you which attack surfaces have already been looked at (could indicate more bugs or fewer bugs)
+
+\section*{Attack Surface Analysis}
+% Answering where to start auditing
+% What input vectors are exposing in your attack scenario
+% Need to know what configuration the target application was built with to know what functionality is included. Prime example is a release versus a debug build.
+% All the different ways you should audit to find exe code which can be exercised
+
+\section*{Bug Patterns Through Small Examples using HTTP}
+% Parsing a HTTP header and multi-part body example of different bug classes
+
+\section*{Source Auditing Tools}
+% Which tools and when to use them
 
 \begin{sectionbox}
 	\begin{lstlisting}[language=C, caption={C Code Listing}]
 	#include<stdio.h>
-	// A comment
+	// Example code
 	int main(void)
 	{
 		printf("Hello World\n");
@@ -67,109 +124,9 @@
 
 \subsection*{Answer}
 
-While this question leaves out the crucial element of the geographic origin of the swallow, according to Jonathan Corum, an unladen European swallow maintains a cruising airspeed velocity of \textbf{11 metres per second}, or \textbf{24 miles an hour}. The velocity of the corresponding African swallows requires further research as kinematic data is severely lacking for these species.
-
-%----------------------------------------------------------------------------------------
-
-\section*{Question 2}
-
-\begin{sectionbox}
-	How much wood would a woodchuck chuck if a woodchuck could chuck wood?
-	
-	\medskip
-	
-	\begin{enumerate}[(\itshape a\normalfont)] % Sub-questions styled as italic letters
-		\item Suppose ``chuck" implies throwing.
-		\item Suppose ``chuck" implies vomiting.
-	\end{enumerate}
-\end{sectionbox}
-
-%------------------------------------------------
-
-\subsection*{Answer}
-
-\begin{enumerate}[(\itshape a\normalfont)] % Sub-questions styled as italic letters
-	\item According to the Associated Press (1988), a New York Fish and Wildlife technician named Richard Thomas calculated the volume of dirt in a typical 25--30 foot (7.6--9.1 m) long woodchuck burrow and had determined that if the woodchuck had moved an equivalent volume of wood, it could move ``about \textbf{700 pounds (320 kg)} on a good day, with the wind at his back".
-    
-	\item A woodchuck can ingest 361.92 cm\textsuperscript{3} (22.09 cu in) of wood per day. Assuming immediate expulsion on ingestion with a 5\% retainment rate, a woodchuck could chuck \textbf{343.82 cm\textsuperscript{3}} of wood per day.
-\end{enumerate}
-
-%----------------------------------------------------------------------------------------
-
-\section*{Question 3}
-
-\begin{sectionbox}
-	Identify the author of Equation \ref{eq:bayes} below and briefly describe it in Latin.
-	
-	\medskip
-	
-	\begin{equation}\label{eq:bayes}
-		P(A|B) = \frac{P(B|A)P(A)}{P(B)}
-	\end{equation}
-	
-	\smallskip
-\end{sectionbox}
-
-%------------------------------------------------
-
-\subsection*{Answer} 
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
-
-%----------------------------------------------------------------------------------------
-
-\section*{Question 4 (bonus marks)}
-
-\begin{sectionbox}
-	The table below shows the nutritional consistencies of two sausage types. Explain their relative differences given what you know about daily adult nutritional recommendations.
-	
-	\bigskip
-    
-	\begin{center}
-		\begin{tabular}{l l l}
-			\toprule
-			\textit{Per 50g} & Pork & Soy \\
-			\midrule
-			Energy & 760kJ & 538kJ\\
-			Protein & 7.0g & 9.3g\\
-			Carbohydrate & 0.0g & 4.9g\\
-			Fat & 16.8g & 9.1g\\
-			Sodium & 0.4g & 0.4g\\
-			Fibre & 0.0g & 1.4g\\
-			\bottomrule
-		\end{tabular}
-	\end{center}
-	
-	\medskip
-\end{sectionbox}
-
-%------------------------------------------------
-
-\subsection*{Answer}
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
-
-%----------------------------------------------------------------------------------------
-
-\section*{Question 5 (bonus marks)}
-
-\begin{sectionbox}
-	\begin{enumerate}
-		\item How many luftballons will be output by the Listing \ref{lst:luftballons} above?
-		\item Identify the regular expression in Listing \ref{lst:luftballons} and explain how it relates to the anti-war sentiments found in the rest of the script.
-	\end{enumerate}
-
-\end{sectionbox}
-
-%------------------------------------------------
-
-\subsection*{Answer}
-
-\begin{enumerate}
-	\item 99 luftballons.
-	\item Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent porttitor arcu luctus, imperdiet urna iaculis, mattis eros. Pellentesque iaculis odio vel nisl ullamcorper, nec faucibus ipsum molestie. Sed dictum nisl non aliquet porttitor. Etiam vulputate arcu dignissim, finibus sem et, viverra nisl. Aenean luctus congue massa, ut laoreet metus ornare in. Nunc fermentum nisi imperdiet lectus tincidunt vestibulum at ac elit. Nulla mattis nisl eu malesuada suscipit.
-\end{enumerate}
+example of a subsection.
 
 %----------------------------------------------------------------------------------------
 
 \end{document}
+
