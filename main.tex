@@ -133,7 +133,7 @@
 \end{enumerate}
 
 % Identify classic stack buffer overflow (cookies, stack re-ordering)
-\textbf{Classic Stack Overflow}
+\textbf{Stack Overflow}
 \begin{enumerate}
 	\item The classic stack overflow is simple but illustrates the fundamental reason overflows are exploitable. Stacks store in-line metadata which is critical to the control flow of a program (i.e. function return addresses and stack frame pointers).
 	\item Stacks have been exhaustively studied and modern stack overflows are hard to exploit due to fortify source protections inserted by the compiler. Stack cookies, stack variable re-ordering, safe string handling functions (think strncpy, snprintf, etc) and moving libraries to non-ascii address ranges are all mitigations to prevent exploitation.
@@ -157,7 +157,7 @@ void read_contents(int fd, unsigned int content_length_value)
 \end{sectionbox}
 
 % Identify classic heap buffer overflow (fortify source)
-\textbf{Classic Heap Overflow}
+\textbf{Heap Overflow}
 \begin{enumerate}
   \item Exploiting a heap overflow requires knowing the implementation details. The implementation details will dictate the exploitation approach and what exploitation mitigations are present.
   \item Ideal heap vulnerabilities consist of several qualities which are not always present.
@@ -188,27 +188,81 @@ void heap_overflow()
 \end{sectionbox}
 
 % Identify classic format string bugs (fortify source, don't really exist anymore)
-\textbf{Classic Format String Bugs}
+\textbf{Format String Bugs}
 \begin{enumerate}
   \item Format strings not found often, easy to check for
 \end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Format Strings}]
+void format_string()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % OOB Reads
 \textbf{Out-of-bounds (OOB) Read}
 Can be relative or absolute
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Out-of-bound Read}]
+void oob_read()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % OOB Writes
 \textbf{Out-of-bounds (OOB) Write}
 Can be relative or absolute
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Out-of-bound Write}]
+void oob_write()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Arbitrary frees
 \textbf{Arbitrary free}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Arbitrary Free}]
+void arbitrary_free()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Double frees
 \textbf{Double free}
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Double Free}]
+void double_free()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Use-after-free
 \textbf{Use-after-free (UAF)}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Use-after-free}]
+void uaf()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Integer overflow
 \textbf{Integer Overflow Example}
@@ -218,6 +272,7 @@ Can be relative or absolute
 	\item The memcpy will then copy data into the heap. Notice that the in\_buf\_size parameter is large to hit the overflow meaning the memcpy will copy large amounts of data an most likely segfault the process when attempting to write to unallocated/unmapped pages.
 	\item Many times one bug type can be transformed into another bug type. Here an integer overflow enabled a heap overflow.
 \end{enumerate}
+
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Integer Overflow Code}]
 void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
@@ -238,26 +293,98 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 % Signedness issues
 \textbf{Signedness Issues}
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Signedness Issues}]
+void signed(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Type confusions
 \textbf{Type Confusions}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Type Confusion}]
+void confused(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Mis-use of sizeof operator
 \textbf{Mis-use of Sizeof}
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Mis-use of Sizeof}]
+void mis_sizeof(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Pointer arthimetic
 \textbf{Pointer Arithmetic Mis-handle}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Pointer Mis-handle}]
+void pointer_mishandle(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Information leaks (heart bleed, unintialzed parameters)
 \textbf{Information Leaks}
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Info Leak}]
+void heart_bleed(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Command injection, popen, system, etc
 \textbf{Command Injection}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Command Injection}]
+void inj(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Race conditions (failures to do proper locking, look at what data locks are supposed to be protecting)
 \textbf{Race Condition}
 
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Race Condition}]
+void racer(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Logic errors
 \textbf{Logic Error}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Logic Error}]
+void logic(unsigned char *in_buf, unsigned in_buf_size)
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 %----------------------------------------------------------------------------------------
 
