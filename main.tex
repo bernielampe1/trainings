@@ -153,15 +153,45 @@ void read_contents(int fd, unsigned int content_length_value)
 	stack_buffer = alloca(content_length_value);
 	read(fd, stack_buffer, content_length_value);
 }
-
 \end{lstlisting}
 \end{sectionbox}
 
 % Identify classic heap buffer overflow (fortify source)
 \textbf{Classic Heap Overflow}
+\begin{enumerate}
+  \item Exploiting a heap overflow requires knowing the implementation details. The implementation details will dictate the exploitation approach and what exploitation mitigations are present.
+  \item Ideal heap vulnerabilities consist of several qualities which are not always present.
+    \begin{enumerate}
+      \item Control of the heap allocation size
+      \item Control of the data overflowing the buffer
+      \item Control of the life-time of the allocation (able to invoke when allocation and free occur)
+      \item Ability to allocate and groom the heap with interesting objects containing meta-data (i.e. function pointers)
+      \item Ability to invoke the use of useful meta-data that is overflowed.
+    \end{enumerate}
+  \item All heap implementations follow the POSIX API or malloc(), calloc(), realloc(), free(), etc.  There are many heap allocators:
+    \begin{enumerate}
+      \item dlmalloc (General)
+      \item ptmalloc2 (Glibc)
+      \item jemalloc (FreeBSD, Firefox)
+      \item tcmalloc (Google)
+      \item libumem (Solaris)
+    \end{enumerate}
+\end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Heap Corruption}]
+void heap_overflow()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
 
 % Identify classic format string bugs (fortify source, don't really exist anymore)
 \textbf{Classic Format String Bugs}
+\begin{enumerate}
+  \item Format strings not found often, easy to check for
+\end{enumerate}
 
 % OOB Reads
 \textbf{Out-of-bounds (OOB) Read}
@@ -258,6 +288,7 @@ Understanding code well enough to find bugs is a difficult problem which is why 
 
 \section*{References}
 \begin{enumerate}
+	\item blog.nsogroup.com, A tale of two mallocs
 	\item cscope.sourceforge.net
 	\item ctags.sourceforge.net
 	\item joern.io
