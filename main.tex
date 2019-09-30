@@ -135,10 +135,10 @@
 % Identify classic stack buffer overflow (cookies, stack re-ordering)
 \textbf{Classic Stack Overflow}
 \begin{enumerate}
-	\item The classic stack overflow is simple but illustrates the fundamental reason overflows are exploitable. Stacks store in-line metadata which is critical to the control flow of a program (i.e. function return addresses).
-	\item Stacks have been exhaustively studied and any modern stack overflows are hard to exploit due to fortify source protections inserted by the compiler. Stack cookies, stack variable re-ordering, safe strcpy, memcpy functions and moving libraries to non-ascii address ranges are all mitigations to prevent exploitation.
+	\item The classic stack overflow is simple but illustrates the fundamental reason overflows are exploitable. Stacks store in-line metadata which is critical to the control flow of a program (i.e. function return addresses and stack frame pointers).
+	\item Stacks have been exhaustively studied and modern stack overflows are hard to exploit due to fortify source protections inserted by the compiler. Stack cookies, stack variable re-ordering, safe string handling functions (think strncpy, snprintf, etc) and moving libraries to non-ascii address ranges are all mitigations to prevent exploitation.
 	\item Exploitation can still occur if interesting local variables exist on the stack and are referenced before the stack cookie is checked.
-	\item Noticing statically sizes stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
+	\item Noticing statically sized stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
 	\item A stack overflow is different from stack exhaustion. Stack exhaustion occurs when the stack runs out of space due to large allocations or deep function recursions.
 	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() will allocate a buffer on the stack by subtracting the size passed in from the stack pointer.
 \end{enumerate}
@@ -195,7 +195,7 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 	unsigned char *buffer;
 	unsigned int buf_size;
 
-	buf_size = in_buf_size + 16;
+	buf_size = in_buf_size + 16; // integer overflow
 	buffer = (unsigned char*)malloc(buf_size *
 					sizeof(unsigned char));
 	if (buffer != NULL) {
