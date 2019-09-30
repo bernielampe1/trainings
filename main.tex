@@ -1,8 +1,8 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         Author: Bernard Lampe
-%     Copyright: Raytheon CODEX 2019
-%    Source auditing lecture material
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        Author: Bernard Lampe
+%    Copyright: Raytheon CODEX 2019
+%   Source auditing lecture material
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % import template
 \documentclass[12pt]{Training}
@@ -30,10 +30,9 @@
 
 % set code listing style
 \lstset{
-    basicstyle=\ttfamily,
-%    frame=tblr,
-%    numbers=left,
-    tabsize=4,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    tabsize=2,
     keywordstyle=\color{blue}\ttfamily,
     stringstyle=\color{red}\ttfamily,
     commentstyle=\color{green}\ttfamily,
@@ -57,18 +56,33 @@
 		 	\item "What pieces of code should be checked thoroughly and which can be ignored?"
 		 	\item "Upon finding a bug, should more time be spent exploring to find more bugs, or should the focus turn to exploitation of the current set of bugs? (Exploration versus Exploitation Tradeoff).
 		\end{enumerate}
-	\item Large code basis make these questions difficult to answer. However, an experienced auditor will perform a thorough attack surface analysis and follow the logical flow of attacker data understanding and verifying each use of the data. General guidance to follow when starting any security audit is:
+	\item Large code bases make these questions difficult to answer. However, an experienced auditor will perform a thorough attack surface analysis and follow the logical flow of attacker data understanding and verifying each use of the data. General guidance to follow when starting any security audit is:
 	\begin{enumerate}
 		\item Learn to read target language (C, C++, PHP, Java, etc).
 		\item Know common bug patterns in the target language.
-		\item Break software into parts, looking at API's.
 		\item Research existing CVE's and public research about the target.
+		\item Find code which isn't in dis-use or rarely executed.
+		\item Code is built in layers or modules. Scope the problem by looking at layers or modules individually and studying the API's.
+		\item Find the ages of the code layers, bugs tend to be in the most recent or very old code.
+		\item Understand the purpose of the code, what the author was trying to do and how the implementation falls short.
+		\item Find the most complicated pieces of code with high cyclomatic complexity.
 		\item Get a feel for the code style and find places the style is violated.
-		\item Track down documentation (RFC's, user manuals, client software, source leaks, bug trackers, code repositories/logs, etc).
+		\item Track down documentation
+			\begin{enumerate}
+				\item RFC's
+				\item User manuals
+				\item Client software
+				\item Source leaks
+				\item Bug trackers
+				\item Code repositories/logs
+				\item Stalk/blame bad developers
+				\item Read all comments in source
+				\item Find prior CVE's in public databases (exploitdb, cvedetails, etc)
+			\end{enumerate}
 	\end{enumerate}
 \end{enumerate}
 
-\section*{Comparing Source Auditing to other Security Analysis Techniques}
+\section*{Comparison of VR Techniques}
 \begin{enumerate}
 	\item Searching for vulnerabilities can be done using static or dynamic analysis. Static analysis includes source code auditing and binary reverse engineering. Dynamic analysis includes fuzz testing and debugging among other more advanced techniques. *See www.fuzzingbook.org.
 	\item Dynamic analysis
@@ -91,42 +105,112 @@
 		\end{enumerate}
 \end{enumerate}
 
-\section*{Utilizing Open Source Information}
-% stalk bad devs
-% read all comments
-% google for CVE's - tells you which attack surfaces have already been looked at (could indicate more bugs or fewer bugs)
-
 \section*{Attack Surface Analysis}
-% Answering where to start auditing
-% What input vectors are exposing in your attack scenario
-% Need to know what configuration the target application was built with to know what functionality is included. Prime example is a release versus a debug build.
-% All the different ways you should audit to find exe code which can be exercised
+\begin{enumerate}
+	\item Attack surface analysis is the process of identifying the points of entry for any untrusted data. Knowing where incoming data is processed will dictate how an attack scenario proceeds. Attack surface analysis is valuble to source auditing to answer, "Where do I start auditing?" and also "What code is accessible and what code can be ignored?".
+ 		\begin{enumerate}
+			\item network sockets (BSD-style sockets)
+			\item inter-process communcation (UNIX domain sockets, binder, signals, shared memory)
+			\item memory mapped pages from the operating system (think dirty-cow)
+			\item files on the filesystem
+			\item environment variables
+			\item software or firmware update channels
+ 		\end{enumerate}
+	\item An important thing to keep in mind when auditing is what options where used at compile time.
+	\item Network servers or operating systems are highly configurable and some code may be present in the source base, but not compiled into the running target binary
+	\item Software such as webservers are highly extensible meaning other software modules may or may not be present. These modules are sometime more vulnerable because they are written by third parties.
+	\item Some software has features available in debug builds which are not present in the release and the opposite is true as well. For example, assert statements in Javascript engines are compiled out in release builds.
+\end{enumerate}
 
-\section*{Bug Patterns Through Small Examples using HTTP}
-% Parsing a HTTP header and multi-part body example of different bug classes
+%----------------------------------------------------------------------------------------
+
+\section*{Bug Patterns Through Small Examples}
+% Put in small examples, on each slide put how mitigations can be implemented by compiler to thwart the exploitation of these bugs
+\begin{enumerate}
+	\item Naive approach to source auditing is to find all the memcpy's, strcpy's or other patterns and then trace the parameters back to the their origin. This can be effective for smaller targets, but is not sufficient and untennable for larger targets.
+	\item It is better to start from the input vector and read through the code which handles the input data.
+\end{enumerate}
+
+% Identify unsanitized parameters, validate all ranges and math done on the input data
+% Identify classic stack buffer overflow (cookies, stack re-ordering)
+% Identify classic heap buffer overflow (fortify source)
+% Identify classic format string bugs (fortify source, don't really exist anymore)
+% OOB Reads
+% OOB Writes
+% Arbitrary frees
+% Double frees
+% Use-after-free
+
+% Integer overflow
+\textbf{Integer Overflow Example}
+Explanation
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={C Code Listing}]
+void copy_buffer(unsigned char *in_buf, unsigned inbuf_size)
+{
+	unsigned char *buffer;
+	unsigned int buf_size;
+
+	buf_size = in_buf_size + 16;
+	buffer = (unsigned char*)malloc(buf_size *
+																	sizeof(unsigned char));
+	if (buffer != NULL) {
+		memcpy(buffer, in_buf, in_buf_size);
+	}
+}
+\end{lstlisting}
+\end{sectionbox}
+
+% Signedness issues
+% Type confusions
+% Mis-use of sizeof operator
+% Pointer arthimetic
+% Information leaks (heart bleed, unintialzed parameters)
+% Command injection, popen, system, etc
+% Race conditions (failures to do proper locking, look at what data locks are supposed to be protecting)
+% Logic errors
+
+%----------------------------------------------------------------------------------------
 
 \section*{Source Auditing Tools}
 % Which tools and when to use them
-
-\begin{sectionbox}
-	\begin{lstlisting}[language=C, caption={C Code Listing}]
-	#include<stdio.h>
-	// Example code
-	int main(void)
-	{
-		printf("Hello World\n");
-		return 0;
-	}
-	\end{lstlisting}
-\end{sectionbox}
+\begin{enumerate}
+	\item Source auditing tools can improve productivity considerably by reducing time to perform attack surface analysis, find definitions, locate calling functions, and understanding of logical flow.
+	\item Critical features of any source auditing tool are as follows.
+		\begin{enumerate}	
+			\item Navigating cross references
+				\begin{enumerate}
+					\item Search for definitions of functions, classes, structs, types, etc
+				\end{enumerate}
+			\item Logical flow graphs
+			\item Understanding preprocessor directives and expand complicated macros
+			\item Search by file name
+			\item Search by struct or object type
+			\item Meld is a handy tool to diff source files
+			\item Joern is newer tool that allows for writing complicated queries to find vulnerable patterns in abstract syntax trees
+			\item Visual studios, Eclipse and Understand are all excellent source tools. Only Eclipse is free the others are paid.
+		\end{enumerate}	
+\end{enumerate}
 
 %----------------------------------------------------------------------------------------
 
-\subsection*{Answer}
+\section*{Conclusion}
+Understanding code well enough to find bugs is a difficult problem which is why code reviews are still the most effective way for developers to prevent from releasing buggy code. The most advanced automated source analysis tools such as those from Grammatech employ constraint solving and code simulation environments. However, all such tools suffer from high false-positive rates. Understanding which code is relevant in an attack scenario and what constitutes an exploitable bug is difficult.
 
-example of a subsection.
-
-%----------------------------------------------------------------------------------------
+\section*{References}
+\begin{enumerate}
+	\item cscope.sourceforge.net
+	\item ctags.sourceforge.net
+	\item joern.io
+	\item meldmerge.org
+	\item scitools.com (understand tool)
+	\item visualstudio.microsoft.com
+	\item www.eclipse.org
+	\item www.fuzzingbook.com
+	\item www.grammatech.com (codesonar tool)
+	\item A Bug Hunter's Diary, Book by Tobias Klein
+	\item The Art of Software Security Assessment, Book by John McDonald, Justin Schuh, and Mark Dowd
+\end{enumerate}
 
 \end{document}
 
