@@ -61,7 +61,7 @@
 		\item Learn to read target language (C, C++, PHP, Java, etc).
 		\item Know common bug patterns in the target language.
 		\item Research existing CVE's and public research about the target.
-		\item Find code which isn't in dis-use or rarely executed.
+		\item Find code which is in dis-use or rarely executed.
 		\item Code is built in layers or modules. Scope the problem by looking at layers or modules individually and studying the API's.
 		\item Find the ages of the code layers, bugs tend to be in the most recent or very old code.
 		\item Understand the purpose of the code, what the author was trying to do and how the implementation falls short.
@@ -84,7 +84,7 @@
 
 \section*{Comparison of VR Techniques}
 \begin{enumerate}
-	\item Searching for vulnerabilities can be done using static or dynamic analysis. Static analysis includes source code auditing and binary reverse engineering. Dynamic analysis includes fuzz testing and debugging among other more advanced techniques. *See www.fuzzingbook.org.
+	\item Searching for vulnerabilities can be done using static or dynamic analysis. Static analysis includes source code auditing and binary reverse engineering. Dynamic analysis includes fuzz testing and debugging among other more advanced techniques.
 	\item Dynamic analysis
 		\begin{enumerate}
 			\item Very few false positives
@@ -98,7 +98,7 @@
 		\begin{enumerate}
 			\item Many more false positives especially with automated tools
 			\item False negative rate is a function of the auditors understanding of the attack surface and code base
-			\item Requires considerable computational resources to scale
+			\item Requires considerable computational/human resources to scale
 			\item Progress requires considerable internal target knowledge
 			\item Bugs found here typically include code which is localized about one area of the target. 
 			\item Source auditing can find non-memory corruption bugs (non-crashing) which are missed by fuzzing techniques.
@@ -108,6 +108,7 @@
 \section*{Attack Surface Analysis}
 \begin{enumerate}
 	\item Attack surface analysis is the process of identifying the points of entry for any untrusted data. Knowing where incoming data is processed will dictate how an attack scenario proceeds. Attack surface analysis is valuble to source auditing to answer, "Where do I start auditing?" and also "What code is accessible and what code can be ignored?".
+	\item Program input vectors are:
  		\begin{enumerate}
 			\item network sockets (BSD-style sockets)
 			\item inter-process communcation (UNIX domain sockets, binder, signals, shared memory)
@@ -133,6 +134,28 @@
 
 % Identify classic stack buffer overflow (cookies, stack re-ordering)
 \textbf{Classic Stack Overflow}
+\begin{enumerate}
+	\item The classic stack overflow is simple but illustrates the fundamental reason overflows are exploitable. Stacks store in-line metadata which is critical to the control flow of a program (i.e. function return addresses).
+	\item Stacks have been exhaustively studied and any modern stack overflows are hard to exploit due to fortify source protections inserted by the compiler. Stack cookies, stack variable re-ordering, safe strcpy, memcpy functions and moving libraries to non-ascii address ranges are all mitigations to prevent exploitation.
+	\item Exploitation can still occur if interesting local variables exist on the stack and are referenced before the stack cookie is checked.
+	\item Noticing statically sizes stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
+	\item A stack overflow is different from stack exhaustion. Stack exhaustion occurs when the stack runs out of space due to large allocations or deep function recursions.
+	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() will allocate a buffer on the stack by subtracting the size passed in from the stack pointer.
+\end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Stack Corruption}]
+void read_contents(int fd, unsigned int content_length_value)
+{
+	unsigned char *stack_buffer;
+
+	// consider what happens when content_length_value -1
+	stack_buffer = alloca(content_length_value);
+	read(fd, stack_buffer, content_length_value);
+}
+
+\end{lstlisting}
+\end{sectionbox}
 
 % Identify classic heap buffer overflow (fortify source)
 \textbf{Classic Heap Overflow}
@@ -159,9 +182,14 @@ Can be relative or absolute
 
 % Integer overflow
 \textbf{Integer Overflow Example}
-The following code snippet is inspired by CVE-2015-3864 which is the Android StageFright bug in the MP4 parser. The inputs to the function below are attacker controlled. Therefore, the addition and mulitplication can overflow the size of a 32 bit unsigned integer. This results in the allocation of fewer bytes than necessary. The memcpy will then copy data into the heap. Notice that the in\_buf\_size parameter is large to hit the overflow meaning the memcpy will copy large amounts of data an most likely segfault the process when attempting to write to unallocated/unmapped pages. Also, many times one bug type can be transformed into another bug type.
+\begin{enumerate}
+	\item The following code snippet is inspired by CVE-2015-3864 which is the Android StageFright bug in the MP4 parser.
+	\item The inputs to the function below are attacker controlled. Therefore, the addition and mulitplication can overflow the size of a 32 bit unsigned integer. This results in the allocation of fewer bytes than necessary.
+	\item The memcpy will then copy data into the heap. Notice that the in\_buf\_size parameter is large to hit the overflow meaning the memcpy will copy large amounts of data an most likely segfault the process when attempting to write to unallocated/unmapped pages.
+	\item Many times one bug type can be transformed into another bug type. Here an integer overflow enabled a heap overflow.
+\end{enumerate}
 \begin{sectionbox}
-\begin{lstlisting}[language=C, caption={C Code Listing}]
+\begin{lstlisting}[language=C, caption={Integer Overflow Code}]
 void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 {
 	unsigned char *buffer;
@@ -178,13 +206,28 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 \end{sectionbox}
 
 % Signedness issues
+\textbf{Signedness Issues}
+
 % Type confusions
+\textbf{Type Confusions}
+
 % Mis-use of sizeof operator
+\textbf{Mis-use of Sizeof}
+
 % Pointer arthimetic
+\textbf{Pointer Arithmetic Mis-handle}
+
 % Information leaks (heart bleed, unintialzed parameters)
+\textbf{Information Leaks}
+
 % Command injection, popen, system, etc
+\textbf{Command Injection}
+
 % Race conditions (failures to do proper locking, look at what data locks are supposed to be protecting)
+\textbf{Race Condition}
+
 % Logic errors
+\textbf{Logic Error}
 
 %----------------------------------------------------------------------------------------
 
@@ -194,14 +237,14 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 	\item Source auditing tools can improve productivity considerably by reducing time to perform attack surface analysis, find definitions, locate calling functions, and understanding of logical flow.
 	\item Critical features of any source auditing tool are as follows.
 		\begin{enumerate}	
-			\item Navigating cross references
+			\item Navigating cross references (ctags, csope)
 				\begin{enumerate}
-					\item Search for definitions of functions, classes, structs, types, etc
+					\item Searching for definitions of functions, classes, structs, types, etc
+					\item Searching for places a function is called or referenced
 				\end{enumerate}
-			\item Logical flow graphs
 			\item Understanding preprocessor directives and expand complicated macros
-			\item Search by file name
-			\item Search by struct or object type
+			\item Search by file name (sublime text)
+			\item Search by struct or object type (eclipse)
 			\item Meld is a handy tool to diff source files
 			\item Joern is newer tool that allows for writing complicated queries to find vulnerable patterns in abstract syntax trees
 			\item Visual studios, Eclipse and Understand are all excellent source tools. Only Eclipse is free the others are paid.
@@ -211,7 +254,7 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 %----------------------------------------------------------------------------------------
 
 \section*{Conclusion}
-Understanding code well enough to find bugs is a difficult problem which is why code reviews are still the most effective way for developers to prevent from releasing buggy code. The most advanced automated source analysis tools such as those from Grammatech employ constraint solving and code simulation environments. However, all such tools suffer from high false-positive rates. Understanding which code is relevant in an attack scenario and what constitutes an exploitable bug is difficult.
+Understanding code well enough to find bugs is a difficult problem which is why code reviews are still the most effective way for developers to avoid releasing buggy code. The most advanced automated source analysis tools such as those from Grammatech employ constraint solving and code simulation environments. However, all such tools suffer from high false-positive rates. Understanding which code is relevant in an attack scenario and what constitutes an exploitable bug is difficult to do in an automated fashion.
 
 \section*{References}
 \begin{enumerate}
