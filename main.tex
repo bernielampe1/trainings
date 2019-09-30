@@ -128,32 +128,48 @@
 % Put in small examples, on each slide put how mitigations can be implemented by compiler to thwart the exploitation of these bugs
 \begin{enumerate}
 	\item Naive approach to source auditing is to find all the memcpy's, strcpy's or other patterns and then trace the parameters back to the their origin. This can be effective for smaller targets, but is not sufficient and untennable for larger targets.
-	\item It is better to start from the input vector and read through the code which handles the input data.
+	\item It is better to start from the input vector and read through the code which handles the input data. Trace the data and examine the data validation code looking for unsanitized input by ensuring all data is constrained properly.
 \end{enumerate}
 
-% Identify unsanitized parameters, validate all ranges and math done on the input data
 % Identify classic stack buffer overflow (cookies, stack re-ordering)
+\textbf{Classic Stack Overflow}
+
 % Identify classic heap buffer overflow (fortify source)
+\textbf{Classic Heap Overflow}
+
 % Identify classic format string bugs (fortify source, don't really exist anymore)
+\textbf{Classic Format String Bugs}
+
 % OOB Reads
+\textbf{Out-of-bounds (OOB) Read}
+Can be relative or absolute
+
 % OOB Writes
+\textbf{Out-of-bounds (OOB) Write}
+Can be relative or absolute
+
 % Arbitrary frees
+\textbf{Arbitrary free}
+
 % Double frees
+\textbf{Double free}
+
 % Use-after-free
+\textbf{Use-after-free (UAF)}
 
 % Integer overflow
 \textbf{Integer Overflow Example}
-Explanation
+The following code snippet is inspired by CVE-2015-3864 which is the Android StageFright bug in the MP4 parser. The inputs to the function below are attacker controlled. Therefore, the addition and mulitplication can overflow the size of a 32 bit unsigned integer. This results in the allocation of fewer bytes than necessary. The memcpy will then copy data into the heap. Notice that the in\_buf\_size parameter is large to hit the overflow meaning the memcpy will copy large amounts of data an most likely segfault the process when attempting to write to unallocated/unmapped pages. Also, many times one bug type can be transformed into another bug type.
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={C Code Listing}]
-void copy_buffer(unsigned char *in_buf, unsigned inbuf_size)
+void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 {
 	unsigned char *buffer;
 	unsigned int buf_size;
 
 	buf_size = in_buf_size + 16;
 	buffer = (unsigned char*)malloc(buf_size *
-																	sizeof(unsigned char));
+					sizeof(unsigned char));
 	if (buffer != NULL) {
 		memcpy(buffer, in_buf, in_buf_size);
 	}
