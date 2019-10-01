@@ -161,14 +161,6 @@ void read_contents(int fd, unsigned int content_length_value)
 \textbf{Heap Overflow}
 \begin{enumerate}
   \item Exploiting a heap overflow requires knowing the implementation details. The implementation details will dictate the exploitation approach and what exploitation mitigations are present.
-  \item Ideal heap vulnerabilities consist of several qualities which are not always present.
-    \begin{enumerate}
-      \item Control of the heap allocation size
-      \item Control of the data overflowing the buffer
-      \item Control of the life-time of the allocation (able to invoke when allocation and free occur)
-      \item Ability to allocate and groom the heap with interesting objects containing meta-data (i.e. function pointers)
-      \item Ability to invoke the use of useful meta-data that is overflowed.
-    \end{enumerate}
   \item All heap implementations follow the POSIX API or malloc(), calloc(), realloc(), free(), etc.  There are many heap allocators:
     \begin{enumerate}
       \item dlmalloc (General)
@@ -177,13 +169,55 @@ void read_contents(int fd, unsigned int content_length_value)
       \item tcmalloc (Google)
       \item libumem (Solaris)
     \end{enumerate}
+  \item Ideal heap vulnerabilities consist of several qualities of which a subset may be present.
+    \begin{enumerate}
+      \item Control of the heap allocation size
+      \item Control of the data overflowing the buffer
+      \item Control of the length overflowed out-of-bounds
+      \item Control of the life-time of the allocation (able to invoke when allocation and free occur)
+      \item Ability to allocate and groom the heap with interesting objects containing meta-data (i.e. function pointers)
+      \item Ability to invoke the use of useful meta-data that is overflowed.
+    \end{enumerate}
+  \item The following example illustrates a function with an obvious heap overflow in the CREATE command. This simple example illustrates control of allocation size, length of overflow, life-time. This bug would require another heap primitive to overflow into containing metadata. In addition, the overflowed data is ASCII limiting null bytes.
 \end{enumerate}
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Heap Corruption}]
-void heap_overflow()
-{
+#define MAX_STRS 0x100
+#define STRLEN_MAX 0x100
+enum cmd { CREATE = 0x10, DELETE, FIND };
+char *g_strs[MAX_STRS];
+int n_strs= 0;
 
+char *find(char *str)
+{
+    for(int i = 0; i < n_strs; i++) {
+        if (!strcmp(str, g_strs[i])) return g_strs[i];
+    }   
+    return NULL;
+}
+
+// called repeatedly with user controlled command and c-string
+char* str_store(enum cmd c, char *str)
+{
+    char *ret = NULL;
+    switch (c) {
+        case CREATE:
+            if (n_strs < MAX_STRS) {
+                g_strs[n_strs] = malloc(STRLEN_MAX);
+                strcpy(g_strs[n_strs], str);
+                ret = g_strs[n_strs++];
+            }
+            break;
+        case DELETE:
+            free(find(str));
+            break;
+        case FIND:
+            ret = find(str);
+            break;
+    }   
+
+    return ret;
 }
 \end{lstlisting}
 \end{sectionbox}
