@@ -142,6 +142,7 @@
 	\item Exploitation can still occur if interesting local variables exist on the stack and are referenced before the stack cookie is checked.
 	\item Noticing statically sized stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
 	\item A stack overflow is different from stack exhaustion. Stack exhaustion occurs when the stack runs out of space due to large allocations or deep function recursions.
+	\item One interesting strategy that continues to be exploitable is if you can write bytes to the stack at predictiable offsets. If so, then overwriting pointers on the stack is useful to shift stack frames/objects/buffers up or down into perhaps attacker controlled areas.
 	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() (in Linux) will allocate a buffer on the stack by subtracting the size passed in from the stack pointer. This bug pattern is not possible in Windows because the alloca implementation will allocate a single page at a time and derefernece each page incrementally.
 \end{enumerate}
 
@@ -251,11 +252,14 @@ void format_string(char *user_controlled)
 \end{lstlisting}
 \end{sectionbox}
 
-% OOB Reads
+% OOB Reads/Writes
 % --------------------------------------------------------------------------------
 \textbf{Out-of-bounds (OOB) Read/Write}
 \begin{enumerate}
-    \item Can be relative or absolute
+    \item These can be caused by unchecked offsets, and can be relative or absolute.
+    \item A relative read/write is when the offset is added to a pointer dynamically allocated.
+   \item  If the offsets are signed, then you can read/write relative before the buffer. If not, you can only write after. This will affect your memory grooming technique used.
+    \item An absolute read/write is when the attacker controls the dereferenced pointer being written to (i.e. can write to any address specified directly by the attacker).
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Out-of-bound Read}]
@@ -279,33 +283,62 @@ void oob(uint8_t *buffer, uint32_t len, uint32_t seek)
 % Arbitrary frees
 \textbf{Arbitrary free}
 \begin{enumerate}
-    \item Sometimes the attacker can control the pointer value passed to free.
+    \item If the attacker can control the pointer value passed to free.
     \item This can often times be turned into a use-after-free (UAF) by free'ing memory still in use.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Arbitrary Free}]
-void arbitrary_free(struct object *obj)
+typedef struct Obj {
+    char buf[0x100];
+    Obj *next;
+} Obj;
+Obj list_head; // sentinel
+
+void add_object(char *name)
 {
-    
+    // setup object
+    Obj *o = malloc(sizeof(Obj));
+    o->next = NULL;
+
+    // set list name, what does this overwrite?
+    strcpy(o->buf, name);
+
+    // add to list
+    Obj *c = &list_head;
+    while(c->next)
+        c = c->next;
+    c->next = o;
+}
+
+void free_list()
+{
+    Obj *c = list_head.next;
+    do {
+        Obj *t = c;
+        c = c->next; // advance pointer
+        free(t); // free current
+    } while(c);
 }
 \end{lstlisting}
 \end{sectionbox}
 
 % Double frees
 \textbf{Double free}
-
+\begin{enumerate}
+    \item A double free will add the same pointer to the heap allocators free list twice.
+    \item Then two new allocations will be served the same free memory block which could result in a type confusion.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Double Free}]
-void double_free()
-{
 
-}
 \end{lstlisting}
 \end{sectionbox}
 
 % Use-after-free
 \textbf{Use-after-free (UAF)}
-
+\begin{enumerate}
+    \item A use-after-free (UAF), 
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Use-after-free}]
 void uaf()
@@ -326,16 +359,16 @@ void uaf()
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Integer Overflow Code}]
-void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
+void copy_buffer(unsigned char *in_buf, unsigned len)
 {
 	unsigned char *buffer;
 	unsigned int buf_size;
 
-	buf_size = in_buf_size + 16; // integer overflow
+	buf_size = len + 16; // integer overflow
 	buffer = (unsigned char*)malloc(buf_size *
 					sizeof(unsigned char));
 	if (buffer != NULL) {
-		memcpy(buffer, in_buf, in_buf_size);
+		memcpy(buffer, in_buf, len);
 	}
 }
 \end{lstlisting}
@@ -346,7 +379,7 @@ void copy_buffer(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Signedness Issues}]
-void signed(unsigned char *in_buf, unsigned in_buf_size)
+void signed(unsigned char *in_buf, int len)
 {
 
 }
@@ -358,7 +391,7 @@ void signed(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Type Confusion}]
-void confused(unsigned char *in_buf, unsigned in_buf_size)
+void confused(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -370,7 +403,7 @@ void confused(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Mis-use of Sizeof}]
-void mis_sizeof(unsigned char *in_buf, unsigned in_buf_size)
+void mis_sizeof(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -382,7 +415,7 @@ void mis_sizeof(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Pointer Mis-handle}]
-void pointer_mishandle(unsigned char *in_buf, unsigned in_buf_size)
+void pointer_mishandle(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -394,7 +427,7 @@ void pointer_mishandle(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Info Leak}]
-void heart_bleed(unsigned char *in_buf, unsigned in_buf_size)
+void heart_bleed(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -406,7 +439,7 @@ void heart_bleed(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Command Injection}]
-void inj(unsigned char *in_buf, unsigned in_buf_size)
+void inj(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -418,7 +451,7 @@ void inj(unsigned char *in_buf, unsigned in_buf_size)
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Race Condition}]
-void racer(unsigned char *in_buf, unsigned in_buf_size)
+void racer(unsigned char *in_buf, unsigned len)
 {
 
 }
@@ -440,29 +473,74 @@ void toctou()
 % Logic errors
 \textbf{Logic Error}
 \begin{enumerate}
-    \item Patched by Apple ... CVE
-    \item Bad code merge or copy/paste
-    \item Allows attacker to ...
+    \item Logic error due to a bad code merge or copy and paste error.
+    \item Permits MitM attacker to capture and modify data in sessions protected by SSL/TLS by short circuiting the SHA1 validation.
 \end{enumerate}
-
-% Logic bugs
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Logic Error}]
-void logic(unsigned char *in_buf, unsigned in_buf_size)
+void SSLVerifySignedServerKeyExchange()
 {
-    // iOS goto fail
+// <snip'ed code>
+    ashOut.data = hashes + SSL_MD5_DIGEST_LEN;
+    hashOut.length = SSL_SHA1_DIGEST_LEN;
+    if ((err = SSLFreeBuffer(&hashCtx)) != 0)
+        goto fail;
+    if ((err = ReadyHash(&SSLHashSHA1, &hashCtx)) != 0)
+        goto fail;
+    if ((err = SSLHashSHA1.update(&hashCtx, &clientRandom)) != 0)
+        goto fail;
+    if ((err = SSLHashSHA1.update(&hashCtx, &serverRandom)) != 0)
+        goto fail;
+    if ((err = SSLHashSHA1.update(&hashCtx, &signedParams)) != 0)
+        goto fail;
+        goto fail;  // what does this line do?
+    if ((err = SSLHashSHA1.final(&hashCtx, &hashOut)) != 0)
+        goto fail;
+
+    err = sslRawVerify(...);
+// <snip'ed code>
 }
 \end{lstlisting}
 \end{sectionbox}
 
 % Ref count bugs
 \textbf{REF Counting}
+\begin{enumerate}
+    \item Reference counting can be viewed as a memory allocator with amortized work.
+    \begin{enumerate}
+        \item A put is decrementing (free'ing) a ref count. When refcount goes to zero, then memory is free'd.
+        \item A get is incrementing (allocating) a ref count.
+    \end{enumerate}
+    \item Mis-counting a refcount can lead to UAF.
+    \begin{enumerate}
+        \item If an attacker can invoke an extra put, then a UAF can be directly achieved.
+        \item If an attacker can invoke an extra get, then you can integer overflow the refcount to zero and achieve a UAF.
+    \end{enumerate}
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Incorrect Reference Counting}]
-void refcount()
+// reference counting structure
+struct ref {
+    void (*free)(const struct ref *);
+    int count;
+};
+
+void ref_inc(const struct ref *ref)
 {
-    // overflow or mis-matching counting (multiple puts for every get, or multiple gets for every put)
+    ((struct ref *)ref)->count++;
 }
+
+void ref_dec(const struct ref *ref)
+{
+    if (--((struct ref *)ref)->count == 0)
+        ref->free(ref);
+}
+
+// embed reference count in a struct
+typedef struct Obj{
+    int data;
+    struct ref refcount;
+} Obj;
 \end{lstlisting}
 \end{sectionbox}
 
