@@ -58,14 +58,15 @@
 		\end{enumerate}
 	\item Large code bases make these questions difficult to answer. However, an experienced auditor will perform a thorough attack surface analysis and follow the logical flow of attacker data understanding and verifying each use of the data. General guidance to follow when starting any security audit is:
 	\begin{enumerate}
-		\item Learn to read target language (C, C++, PHP, Java, etc).
+		\item Learn to read and write target language (C, C++, PHP, Java, etc).
 		\item Know common bug patterns in the target language.
 		\item Research existing CVE's and public research about the target.
 		\item Find code which is in dis-use or rarely executed.
 		\item Code is built in layers or modules. Scope the problem by looking at layers or modules individually and studying the API's.
 		\item Find the ages of the code layers, bugs tend to be in the most recent or very old code.
+		\item Find large back-end components of the software such as memory allocators, parsing functions/libraries, JIT engines, garbage collecxtors, etc.
 		\item Understand the purpose of the code, what the author was trying to do and how the implementation falls short.
-		\item Find the most complicated pieces of code with high cyclomatic complexity.
+		\item Find the most complicated pieces of code with high cyclomatic complexity. Data structures which are used frequently or are polymorphically used (cast/unions) are important to understand.
 		\item Get a feel for the code style and find places the style is violated.
 		\item Need to know how high level code is translated into assembly looking for when the intended logical flow does not match the implementation.
 		\item Track down documentation
@@ -88,17 +89,17 @@
 	\item Searching for vulnerabilities can be done using static or dynamic analysis. Static analysis includes source code auditing and binary reverse engineering. Dynamic analysis includes fuzz testing and debugging among other more advanced techniques.
 	\item Dynamic analysis
 		\begin{enumerate}
-			\item Very few false positives
-			\item False negative rate can be reduced by adding code coverage, feedback fuzzing or memory sanitizers
+			\item Very few false positives (flagging bugs that don't exist)
+			\item False negative rate (missed bugs) can be reduced by adding code coverage, feedback fuzzing or memory sanitizers
 			\item Scaling can be done by adding more processing time
 			\item Progress can be made using blackbox methods
 			\item Able to find non-obvious bugs which utilize code from disparate parts of the source code base. This can make root causing hard.
-			\item Hard to find logic bugs
+			\item Special instrumentation is needed to find bugs that do not result in a crash.
 		\end{enumerate}
 	\item Static analysis:
 		\begin{enumerate}
-			\item Many more false positives especially with automated tools
-			\item False negative rate is a function of the auditors understanding of the attack surface and code base
+			\item Many more false positives (flagging bugs that don't exist) especially with automated tools
+			\item False negative (missed bugs) rate is a function of the auditors understanding of the attack surface and code base
 			\item Requires considerable computational/human resources to scale
 			\item Progress requires considerable internal target knowledge
 			\item Bugs found here typically include code which is localized about one area of the target. 
@@ -108,7 +109,7 @@
 
 \section*{Attack Surface Analysis}
 \begin{enumerate}
-	\item Attack surface analysis is the process of identifying the points of entry for any untrusted data. Knowing where incoming data is processed will dictate how an attack scenario proceeds. Attack surface analysis is valuble to source auditing to answer, "Where do I start auditing?" and also "What code is accessible and what code can be ignored?".
+	\item Attack surface analysis is the process of identifying the points of entry for any untrusted data. Knowing where incoming data is processed will dictate how an attack scenario proceeds. Attack surface analysis is valuble to source auditing to answer, "Where do I start auditing?", "What code is accessible and what code can be ignored?", "Has this code been audited or fuzzed before?", and "How many vulnerabilities have been found in this component before? Are there any left?".
 	\item Program input vectors are:
  		\begin{enumerate}
 			\item network sockets (BSD-style sockets)
@@ -141,7 +142,7 @@
 	\item Exploitation can still occur if interesting local variables exist on the stack and are referenced before the stack cookie is checked.
 	\item Noticing statically sized stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
 	\item A stack overflow is different from stack exhaustion. Stack exhaustion occurs when the stack runs out of space due to large allocations or deep function recursions.
-	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() will allocate a buffer on the stack by subtracting the size passed in from the stack pointer.
+	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() (in Linux) will allocate a buffer on the stack by subtracting the size passed in from the stack pointer. This bug pattern is not possible in Windows because the alloca implementation will allocate a single page at a time and derefernece each page incrementally.
 \end{enumerate}
 
 \begin{sectionbox}
@@ -223,55 +224,69 @@ char* str_store(enum cmd c, char *str)
 \end{sectionbox}
 
 % Identify classic format string bugs (fortify source, don't really exist anymore)
+% --------------------------------------------------------------------------------
 \textbf{Format String Bugs}
 \begin{enumerate}
-  \item Format strings not found often, easy to check for
+    \item Format strings not found often, because they are easy for compilers to programmatically check for.
+    \item Also, FORTIFY\_SOURCE features of gcc make these bugs hard to exploit. However, there are automated libraries for exploiting these bugs now.
+    \item If the attacker has control of the format string passed to printf, fprintf, vsprintf, sprintf, etc, then he can read memory OOB, derefence memory OOB, and with \%n feature can write attacker controlled data OOB.
+    \item The \%n is widely disabled these days.
 \end{enumerate}
-
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Format Strings}]
 CVE-2012-0809
-void format_string()
+void format_string(char *user_controlled)
 {
+    int foo = 1;
 
+    // very bad, what would "\%s", "\%n" or "\%x" do?
+    printf(user_controlled); 
+
+    // what does the "\%s" do?
+    printf("User string is \%s");
+
+    // what does the second "\%x" print?
+    printf("User variable is var = \%x\%x", foo);
 }
 \end{lstlisting}
 \end{sectionbox}
 
 % OOB Reads
-\textbf{Out-of-bounds (OOB) Read}
-Can be relative or absolute
-
+% --------------------------------------------------------------------------------
+\textbf{Out-of-bounds (OOB) Read/Write}
+\begin{enumerate}
+    \item Can be relative or absolute
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Out-of-bound Read}]
-void oob_read()
+#define MAX_SIZE 0x1000
+char *g_buf;
+void oob(uint8_t *buffer, uint32_t len, uint32_t seek)
 {
+    if (len > MAX_SIZE) return;
 
-}
-\end{lstlisting}
-\end{sectionbox}
+    if (!g_buf) {
+        g_buf = malloc(len);
+        if (!g_buf) return;
+    }
 
-% OOB Writes
-\textbf{Out-of-bounds (OOB) Write}
-Can be relative or absolute
-
-\begin{sectionbox}
-\begin{lstlisting}[language=C, caption={Out-of-bound Write}]
-void oob_write()
-{
-
+    // what happens if user controls seek?
+    memcpy(g_buf, buffer + seek, len - seek);
 }
 \end{lstlisting}
 \end{sectionbox}
 
 % Arbitrary frees
 \textbf{Arbitrary free}
-
+\begin{enumerate}
+    \item Sometimes the attacker can control the pointer value passed to free.
+    \item This can often times be turned into a use-after-free (UAF) by free'ing memory still in use.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Arbitrary Free}]
-void arbitrary_free()
+void arbitrary_free(struct object *obj)
 {
-
+    
 }
 \end{lstlisting}
 \end{sectionbox}
@@ -410,14 +425,85 @@ void racer(unsigned char *in_buf, unsigned in_buf_size)
 \end{lstlisting}
 \end{sectionbox}
 
+% TOCTOU errors
+\textbf{TOC TOU}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Time-of-Check, Time-of-Use}]
+void toctou()
+{
+
+}
+\end{lstlisting}
+\end{sectionbox}
+
 % Logic errors
 \textbf{Logic Error}
+\begin{enumerate}
+    \item Patched by Apple ... CVE
+    \item Bad code merge or copy/paste
+    \item Allows attacker to ...
+\end{enumerate}
 
+% Logic bugs
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Logic Error}]
 void logic(unsigned char *in_buf, unsigned in_buf_size)
 {
+    // iOS goto fail
+}
+\end{lstlisting}
+\end{sectionbox}
 
+% Ref count bugs
+\textbf{REF Counting}
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Incorrect Reference Counting}]
+void refcount()
+{
+    // overflow or mis-matching counting (multiple puts for every get, or multiple gets for every put)
+}
+\end{lstlisting}
+\end{sectionbox}
+
+% Uninitialized use bugs
+\textbf{Uninitialized Memory Bugs}
+\begin{enumerate}
+    \item Use of uninitialized memory can be problematic if the attacker can replace the memory on the stack or heap with their data via a groom or spray.
+    \item In the following example, imaging an attacker can invoke each of these functions at any time.
+\end{enumerate}
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Memory Used Unintialized}]
+$define ARRAY_SIZE 0x100
+$define STR_SIZE 0x10
+char **g_array;
+void alloc_array(int len)
+{
+    if (!g_array) {
+        g_array = malloc(ARRAY_SIZE * sizeof(char*));
+        if (!g_array) return;
+    }
+
+    for(int i = 0; i < ARRAY_SIZE, i++) {
+        array[i] = calloc(STR_SIZE, sizeof(char*));
+    }
+}
+
+void use_array()
+{
+    if (!g_array) return;
+    for(int i = 0; i < ARRAY_SIZE; i++) {
+        printf("\%s\n", g_array[i]);
+    }
+}
+
+void free_array()
+{
+    if (!g_array) return;
+    for(int i = 0; i < ARRAY_SIZE; i++) {
+        free(g_array[i]);
+    }
+    g_array[0] = NULL; // is this sufficient?
 }
 \end{lstlisting}
 \end{sectionbox}
