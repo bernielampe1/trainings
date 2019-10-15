@@ -323,14 +323,40 @@ void free_list()
 \end{sectionbox}
 
 % Double frees
-\textbf{Double free}
+\textbf{Double Free}
 \begin{enumerate}
     \item A double free will add the same pointer to the heap allocators free list twice.
     \item Then two new allocations will be served the same free memory block which could result in a type confusion.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Double Free}]
+typedef struct Obj { 
+    int data; 
+    struct node *left; 
+    struct node *right; 
+} Obj; 
 
+void insert(int key, Obj *leaf)
+{
+    Obj *o = search(key, leaf);
+}
+
+Obj *search(int key, Obj *leaf)
+{
+    if (leaf != NULL)
+    {
+        if (key == leaf->data) {
+            return leaf;
+        }
+        else if (key < leaf->data) {
+            return search(key, leaf->left);
+        }
+        else {
+            return search(key, leaf->right);
+        }
+    }
+    else return NULL;
+}
 \end{lstlisting}
 \end{sectionbox}
 
@@ -410,18 +436,6 @@ void mis_sizeof(unsigned char *in_buf, unsigned len)
 \end{lstlisting}
 \end{sectionbox}
 
-% Pointer arthimetic
-\textbf{Pointer Arithmetic Mis-handle}
-
-\begin{sectionbox}
-\begin{lstlisting}[language=C, caption={Pointer Mis-handle}]
-void pointer_mishandle(unsigned char *in_buf, unsigned len)
-{
-
-}
-\end{lstlisting}
-\end{sectionbox}
-
 % Information leaks (heart bleed, unintialzed parameters)
 \textbf{Information Leaks}
 
@@ -436,12 +450,28 @@ void heart_bleed(unsigned char *in_buf, unsigned len)
 
 % Command injection, popen, system, etc
 \textbf{Command Injection}
-
+\begin{enumerate}
+    \item Command injection comes from using unsanitized input. When calling out to system via system(), popen(), execve(), etc, any shell escape characters need to be filtered out.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Command Injection}]
-void inj(unsigned char *in_buf, unsigned len)
+void unlink_file(char *fname)
 {
+    char buf[1024];
+    struct stat statbuf;
 
+    // get file stats
+    if (!stat(fname, &statbuf)) return;
+
+    // check if regular file
+    if (statbuf.st_mode & S_IFMT == S_IFREG) {
+        // what happens if fname has shell escape characters is in it?
+        snprintf(buf, 1024, "/bin/rm \%s", fname);
+
+        FILE *fp = popen(buf, "r");
+        if (fp == NULL) return;
+        pclose(fp);
+    }
 }
 \end{lstlisting}
 \end{sectionbox}
