@@ -74,7 +74,7 @@
 				\item RFC's
 				\item User manuals
 				\item Client software
-				\item Source leaks
+				\item Source leaks (even out of date code is valuable)
 				\item Bug trackers
 				\item Code repositories/logs
 				\item Stalk/blame bad developers
@@ -119,7 +119,7 @@
 			\item environment variables
 			\item software or firmware update channels
  		\end{enumerate}
-	\item An important thing to keep in mind when auditing is what options where used at compile time.
+	\item An important thing to keep in mind when auditing is what options where used at compile time. This will help you ignore code not compiled into the target.
 	\item Network servers or operating systems are highly configurable and some code may be present in the source base, but not compiled into the running target binary
 	\item Software such as webservers are highly extensible meaning other software modules may or may not be present. These modules are sometime more vulnerable because they are written by third parties.
 	\item Some software has features available in debug builds which are not present in the release and the opposite is true as well. For example, assert statements in Javascript engines are compiled out in release builds.
@@ -791,8 +791,10 @@ Understanding code well enough to find bugs is a difficult problem which is why 
 	\item blog.nsogroup.com, A tale of two mallocs
 	\item cscope.sourceforge.net
 	\item ctags.sourceforge.net
+    \item exploit-exercises.lains.space
 	\item joern.io
 	\item meldmerge.org
+	\item pleasestopnamingvulnerabilities.com/integers.html
 	\item scitools.com (understand tool)
 	\item visualstudio.microsoft.com
 	\item www.eclipse.org
