@@ -228,8 +228,8 @@ char* str_store(enum cmd c, char *str)
 % --------------------------------------------------------------------------------
 \textbf{Format String Bugs}
 \begin{enumerate}
-    \item Format strings not found often, because they are easy for compilers to programmatically check for.
-    \item Also, FORTIFY\_SOURCE features of gcc make these bugs hard to exploit. However, there are automated libraries for exploiting these bugs now.
+    \item Format strings not found often, because they are easy for compilers to programmatically check for. The compiler can easily check if the format string is not a constant string and can also check if the number of parameters in the format string matches the number and type of arguments. This prevents the class of bug entirely.
+    \item Also, FORTIFY\_SOURCE features of gcc make these bugs hard to exploit. However, there are automated libraries for exploiting these bugs now. 
     \item If the attacker has control of the format string passed to printf, fprintf, vsprintf, sprintf, etc, then he can read memory OOB, derefence memory OOB, and with \%n feature can write attacker controlled data OOB.
     \item The \%n is widely disabled these days.
 \end{enumerate}
@@ -265,7 +265,7 @@ void format_string(char *user_controlled)
 \begin{lstlisting}[language=C, caption={Out-of-bound Read}]
 #define MAX_SIZE 0x1000
 char *g_buf;
-void oob(uint8_t *buffer, uint32_t len, uint32_t seek)
+void oob(uint8_t *buffer, uint32_t len, int32_t seek)
 {
     if (len > MAX_SIZE) return;
 
@@ -290,7 +290,7 @@ void oob(uint8_t *buffer, uint32_t len, uint32_t seek)
 \begin{lstlisting}[language=C, caption={Arbitrary Free}]
 typedef struct Obj {
     char buf[0x100];
-    Obj *next;
+    struct Obj *next;
 } Obj;
 Obj list_head; // sentinel
 
@@ -325,37 +325,63 @@ void free_list()
 % Double frees
 \textbf{Double Free}
 \begin{enumerate}
-    \item A double free will add the same pointer to the heap allocators free list twice.
+    \item A double free will add the same pointer to the heap allocator's free list twice.
     \item Then two new allocations will be served the same free memory block which could result in a type confusion.
+    \item Most libc implementation will catch this because it's a simple check.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Double Free}]
-typedef struct Obj { 
-    int data; 
-    struct node *left; 
-    struct node *right; 
-} Obj; 
+typedef struct Obj {
+    char buf[0x100];
+    struct Obj *next;
+} Obj;
+Obj list_head; // sentinel
 
-void insert(int key, Obj *leaf)
+void add_object(char *name)
 {
-    Obj *o = search(key, leaf);
+    // setup object
+    Obj *o = calloc(1, sizeof(Obj));
+    strncpy(o->buf, name, 0xff);
+    o->next = NULL;
+
+    // add to list
+    Obj *c = &list_head;
+    while(c->next)
+        c = c->next;
+    c->next = o;
 }
 
-Obj *search(int key, Obj *leaf)
+void remove_object(char *name)
 {
-    if (leaf != NULL)
-    {
-        if (key == leaf->data) {
-            return leaf;
-        }
-        else if (key < leaf->data) {
-            return search(key, leaf->left);
-        }
-        else {
-            return search(key, leaf->right);
-        }
+    Obj *c = list_head.next;
+    while(strncmp(c->buf, name, 0xff)) {
+        c = c->next;
     }
-    else return NULL;
+
+    // what does this case forget to do?
+    if (c) {
+        free(c);
+    }
+}
+
+void free_list()
+{
+    Obj *c = list_head.next;
+    do {
+        Obj *t = c;
+        c = c->next; // advance pointer
+        free(t); // free current
+    } while(c);
+}
+
+int main()
+{
+    // what is the state of memory after these calls?
+    add_object("foo");
+    remove_object("foo");
+
+    // what happens when we free the list?
+    free_list();
 }
 \end{lstlisting}
 \end{sectionbox}
@@ -367,9 +393,57 @@ Obj *search(int key, Obj *leaf)
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Use-after-free}]
-void uaf()
-{
+typedef struct Obj {
+    char buf[0x100];
+    struct Obj *next;
+} Obj;
+Obj list_head; // sentinel
 
+void add_object(char *name)
+{
+    // setup object
+    Obj *o = calloc(1, sizeof(Obj));
+    strncpy(o->buf, name, 0xff);
+    o->next = NULL;
+
+    // add to list
+    Obj *c = &list_head;
+    while(c->next)
+        c = c->next;
+    c->next = o;
+}
+
+void remove_object(char *name)
+{
+    Obj *c = list_head.next;
+    while(strncmp(c->buf, name, 0xff)) {
+        c = c->next;
+    }
+
+    // what does this case forget to do?
+    if (c) {
+        free(c);
+    }
+}
+
+void print_list()
+{
+    Obj *c = list_head;
+    while(c->next) {
+        printf("\%s\n", c->buf);
+        c = c->next;
+    }
+}
+
+int main()
+{
+    // what is the state of memory after these calls?
+    add_object("foo");
+    add_object("bar");
+    remove_object("foo");
+
+    // what happens when we do this?
+    print_list();
 }
 \end{lstlisting}
 \end{sectionbox}
@@ -402,49 +476,83 @@ void copy_buffer(unsigned char *in_buf, unsigned len)
 
 % Signedness issues
 \textbf{Signedness Issues}
+\begin{enumerate}
+    \item Signedness issues can occur when an attacker can influence an integer type to be negative.
+    \item It is important that the developers are aware of integer casting rules to prevent these issues.
+\end{enumerate}
 
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Signedness Issues}]
 void signed(unsigned char *in_buf, int len)
 {
+    if (len < 0) return;
 
+    // what happens if len == 0?
+    for(int i = len-1; i != 0; --i) {
+        in_buf[i] = to_upper(in_buf[i]);
+    }
 }
 \end{lstlisting}
 \end{sectionbox}
 
 % Type confusions
 \textbf{Type Confusions}
-
+\begin{enumerate}
+    \item Type confusions are more often found in languages where polymorphism is built in such as C++;
+    \item However, type confusion can occur where type casting occurs. Look out for explicit cast operators in C and reinterpret\_type() calls in C++. These circumvent type safety semantic checking in the compilers.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Type Confusion}]
-void confused(unsigned char *in_buf, unsigned len)
-{
+#define NAME_TYPE 1
+#define ID_TYPE 2
 
+struct MessageBuffer
+{
+    int msgType;
+    union {
+        char *name;
+        int nameID;
+    };
+};
+
+int main (int argc, char **argv) {
+    struct MessageBuffer buf;
+    char *defaultMessage = "Hello World";
+
+    buf.msgType = NAME_TYPE;
+    buf.name = defaultMessage;
+
+    if (argc > 1) {
+        buf.msgType = atoi(argv[1]);
+        buf.name = argv[2];
+    }
+
+    // what happens when the wrong type is given?
+    if (buf.msgType == NAME_TYPE) {
+        printf("Message: \%s\n", buf.name);
+    }
+    else {
+        printf("Message: Use ID \%#x\n", buf.nameID);
+    }
+
+    return 0;
 }
 \end{lstlisting}
 \end{sectionbox}
 
-% Mis-use of sizeof operator
-\textbf{Mis-use of Sizeof}
-
-\begin{sectionbox}
-\begin{lstlisting}[language=C, caption={Mis-use of Sizeof}]
-void mis_sizeof(unsigned char *in_buf, unsigned len)
-{
-
-}
-\end{lstlisting}
-\end{sectionbox}
-
-% Information leaks (heart bleed, unintialzed parameters)
-\textbf{Information Leaks}
-
+% Information leaks/disclosure (heart bleed, unintialzed parameters)
+\textbf{Information Leaks/Disclosure}
+\begin{enumerate}
+    \item The most infamous information disclosure is HeartBleed (CVE-2014-0346) in OpenSSL which would allow a remote attacker to dump heap data from a server process.
+    \item It was called HeartBleed because the heat beat (hello I'm alive) packet in the TLS was poorly implemented in the library.
+    \item This is an example of when a bug isn't found because the attack surface goes unnotice. Typically new attack surfaces (no matter how simple) can habor bugs.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Info Leak}]
-void heart_bleed(unsigned char *in_buf, unsigned len)
-{
-
-}
+// based on CVE-2014-0346, the attacker controls payload
+// so it can be increased beyond the size of pl and returned
+// to the attacker over the socket.
+ memcpy(bp, pl, payload);
 \end{lstlisting}
 \end{sectionbox}
 
@@ -478,24 +586,26 @@ void unlink_file(char *fname)
 
 % Race conditions (failures to do proper locking, look at what data locks are supposed to be protecting)
 \textbf{Race Condition}
-
+\begin{enumerate}
+    \item Race conditions, also calls TOUTOC (for Time-of-Use,Time-of-Check), are bugs in concurrent programs (multi-threading or multi-process) where shared state is not property synchronized with the use of locking mechanisms.
+    \item These are hard to check for using static analysis techniques such as source code auditing.
+    \item When you see locks being used or state being shared, ask "What memory and variables are shared?" and "What synchronization mechcanisms are used to serialize access (spin locks, event locks, reader/writer locks, semaphores)?"
+    \item Some race conditions are very hard to hit. Also look for global locks which will be in higher function calls. These are sometimes used as band-aids for the developers when run time is not an issue. Past Linux versions and Python2 used global locks at runtime.
+    \item Some race conditions are very hard to hit. Also look for global locks which will be in higher function calls. These are sometimes used as band-aids for the developers when run time is not an issue. Past Linux versions and Python2 used global locks at runtime.
+    \item Dirty Cow (CVE-2016-5195) is a very infamous race condition but too elaborate to go into here.
+\end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Race Condition}]
-void racer(unsigned char *in_buf, unsigned len)
+// what happens if we run this and have another process
+// switch out the file after the check?
+void racer(unsigned char *fname)
 {
+    if (!access(fname, R_OK | W_OK)) {
+        perror("file permission denied");
+        return;
+    }
 
-}
-\end{lstlisting}
-\end{sectionbox}
-
-% TOCTOU errors
-\textbf{TOC TOU}
-
-\begin{sectionbox}
-\begin{lstlisting}[language=C, caption={Time-of-Check, Time-of-Use}]
-void toctou()
-{
-
+    // read and write file
 }
 \end{lstlisting}
 \end{sectionbox}
@@ -536,15 +646,15 @@ void SSLVerifySignedServerKeyExchange()
 % Ref count bugs
 \textbf{REF Counting}
 \begin{enumerate}
-    \item Reference counting can be viewed as a memory allocator with amortized work.
+    \item Reference counting can be viewed as a memory allocator with amortized work. All references to a single object use the same underlying sturcture/object memory. Allocation happens during initialization (RAII) and free'ing happens when reference count goes to zero.
     \begin{enumerate}
-        \item A put is decrementing (free'ing) a ref count. When refcount goes to zero, then memory is free'd.
-        \item A get is incrementing (allocating) a ref count.
+        \item A put operations is decrementing (free'ing) a ref count. When refcount goes to zero, then memory is free'd.
+        \item A get operation is incrementing (allocating) a ref count.
     \end{enumerate}
     \item Mis-counting a refcount can lead to UAF.
     \begin{enumerate}
         \item If an attacker can invoke an extra put, then a UAF can be directly achieved.
-        \item If an attacker can invoke an extra get, then you can integer overflow the refcount to zero and achieve a UAF.
+        \item If an attacker can invoke an extra get, then the attacker can integer overflow the refcount to zero and achieve a UAF.
     \end{enumerate}
 \end{enumerate}
 \begin{sectionbox}
@@ -566,11 +676,44 @@ void ref_dec(const struct ref *ref)
         ref->free(ref);
 }
 
-// embed reference count in a struct
+// embed reference count in a struct/class
 typedef struct Obj{
     int data;
     struct ref refcount;
 } Obj;
+
+// struct/class initialization
+Obj *alloc_obj(int data) {
+    // allocate memory
+    Obj *o = calloc(1, sizeof(Obj);
+    o->data = data;
+
+    // init ref count
+    o->ref.free = free;
+    ref_inc(o->ref);
+
+    reutrn o;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 2) return -1;
+    uint32_t num_to_alloc = strtol(argv[1], NULL, 10);
+
+    // what happens when num_to_alloc = 0xFFFFFFFF?
+    Obj *o = alloc_obj(42);
+    for(int i = 0; i < num_to_alloc, i++) {
+        ref_inc(o->refcount);
+    }
+
+    // de-allocations
+    for(int i = 0; i < num_to_alloc, i++) {
+        ref_dec(o->refcount);
+    }
+    
+
+    return 0;
+}
 \end{lstlisting}
 \end{sectionbox}
 
