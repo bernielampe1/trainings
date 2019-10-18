@@ -24,7 +24,7 @@
 \author{Dr. Bernard Lampe}
 \class{Introduction to Vulnerability Research}
 \institute{Raytheon CODEX}
-\date{September 24th, 2019}
+\date{October 17th, 2019}
 
 %----------------------------------------------------------------------------------------
 
@@ -67,7 +67,7 @@
 		\item Find large back-end components of the software such as memory allocators, parsing functions/libraries, JIT engines, garbage collecxtors, etc.
 		\item Understand the purpose of the code, what the author was trying to do and how the implementation falls short.
 		\item Find the most complicated pieces of code with high cyclomatic complexity. Data structures which are used frequently or are polymorphically used (cast/unions) are important to understand.
-		\item Get a feel for the code style and find places the style is violated.
+		\item Get a feel for the code style and find places the style is violated. This can tell you if multiple authors are writing and merging code and opens up chances for mis-communications.
 		\item Need to know how high level code is translated into assembly looking for when the intended logical flow does not match the implementation.
 		\item Track down documentation
 			\begin{enumerate}
@@ -142,7 +142,7 @@
 	\item Exploitation can still occur if interesting local variables exist on the stack and are referenced before the stack cookie is checked.
 	\item Noticing statically sized stack buffers is useful in finding such bugs. In addition, mis-use of the stack allocation routine alloca() can lead to a stack overflow.
 	\item A stack overflow is different from stack exhaustion. Stack exhaustion occurs when the stack runs out of space due to large allocations or deep function recursions.
-	\item One interesting strategy that continues to be exploitable is if you can write bytes to the stack at predictiable offsets. If so, then overwriting pointers on the stack is useful to shift stack frames/objects/buffers up or down into perhaps attacker controlled areas.
+	\item One interesting strategy that continues to be exploitable is if you can write bytes to the stack at predictiable offsets. If so, then overwriting pointers on the stack is useful to shift stack frames pointers or pointers to objects onthe stack up or down into perhaps attacker controlled areas.
 	\item The following example of a stack corruption bug is based on CVE-2018-7445. Note that the alloca() (in Linux) will allocate a buffer on the stack by subtracting the size passed in from the stack pointer. This bug pattern is not possible in Windows because the alloca implementation will allocate a single page at a time and derefernece each page incrementally.
 \end{enumerate}
 
@@ -152,7 +152,7 @@ void read_contents(int fd, unsigned int content_length_value)
 {
 	unsigned char *stack_buffer;
 
-	// consider what happens when content_length_value -1
+	// consider what happens when content_length_value = -1
 	stack_buffer = alloca(content_length_value);
 	read(fd, stack_buffer, content_length_value);
 }
@@ -228,14 +228,14 @@ char* str_store(enum cmd c, char *str)
 % --------------------------------------------------------------------------------
 \textbf{Format String Bugs}
 \begin{enumerate}
-    \item Format strings not found often, because they are easy for compilers to programmatically check for. The compiler can easily check if the format string is not a constant string and can also check if the number of parameters in the format string matches the number and type of arguments. This prevents the class of bug entirely.
+    \item Format strings are not found often, because they are easy for compilers to programmatically check for. The compiler can easily check if the format string is not a constant string and can also check if the number of parameters in the format string matches the number and type of arguments. This prevents the class of bug entirely.
     \item Also, FORTIFY\_SOURCE features of gcc make these bugs hard to exploit. However, there are automated libraries for exploiting these bugs now. 
     \item If the attacker has control of the format string passed to printf, fprintf, vsprintf, sprintf, etc, then he can read memory OOB, derefence memory OOB, and with \%n feature can write attacker controlled data OOB.
     \item The \%n is widely disabled these days.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Format Strings}]
-CVE-2012-0809
+// based on CVE-2012-0809
 void format_string(char *user_controlled)
 {
     int foo = 1;
@@ -294,24 +294,19 @@ typedef struct Obj {
 } Obj;
 Obj list_head; // sentinel
 
-void add_object(char *name)
-{
-    // setup object
+void add_object(char *name) {
+    // set list name, what does this overwrite?
     Obj *o = malloc(sizeof(Obj));
     o->next = NULL;
-
-    // set list name, what does this overwrite?
     strcpy(o->buf, name);
 
-    // add to list
     Obj *c = &list_head;
     while(c->next)
         c = c->next;
     c->next = o;
 }
 
-void free_list()
-{
+void free_list() {
     Obj *c = list_head.next;
     do {
         Obj *t = c;
@@ -389,7 +384,8 @@ int main()
 % Use-after-free
 \textbf{Use-after-free (UAF)}
 \begin{enumerate}
-    \item A use-after-free (UAF), 
+    \item A use-after-free (UAF) is problematic because an attacker may be able to replace the memory.
+    \item Critical aspects of exploitability of these bugs are the ability to spray or groom the heap to replace the memory with attacker controlle data. Then having that attacker controlled way used in an interesting way.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Use-after-free}]
@@ -399,35 +395,25 @@ typedef struct Obj {
 } Obj;
 Obj list_head; // sentinel
 
-void add_object(char *name)
-{
-    // setup object
+void add_object(char *name) {
     Obj *o = calloc(1, sizeof(Obj));
     strncpy(o->buf, name, 0xff);
     o->next = NULL;
 
-    // add to list
     Obj *c = &list_head;
-    while(c->next)
-        c = c->next;
+    while(c->next) c = c->next;
     c->next = o;
 }
 
-void remove_object(char *name)
-{
+void remove_object(char *name) {
     Obj *c = list_head.next;
-    while(strncmp(c->buf, name, 0xff)) {
-        c = c->next;
-    }
+    while(strncmp(c->buf, name, 0xff)) c = c->next;
 
     // what does this case forget to do?
-    if (c) {
-        free(c);
-    }
+    if (c) free(c);
 }
 
-void print_list()
-{
+void print_list() {
     Obj *c = list_head;
     while(c->next) {
         printf("\%s\n", c->buf);
@@ -435,8 +421,7 @@ void print_list()
     }
 }
 
-int main()
-{
+int main() {
     // what is the state of memory after these calls?
     add_object("foo");
     add_object("bar");
@@ -498,7 +483,7 @@ void signed(unsigned char *in_buf, int len)
 % Type confusions
 \textbf{Type Confusions}
 \begin{enumerate}
-    \item Type confusions are more often found in languages where polymorphism is built in such as C++;
+    \item Type confusions are more often found in languages where polymorphism is built in such as C++.
     \item However, type confusion can occur where type casting occurs. Look out for explicit cast operators in C and reinterpret\_type() calls in C++. These circumvent type safety semantic checking in the compilers.
 \end{enumerate}
 \begin{sectionbox}
@@ -552,7 +537,16 @@ int main (int argc, char **argv) {
 // based on CVE-2014-0346, the attacker controls payload
 // so it can be increased beyond the size of pl and returned
 // to the attacker over the socket.
- memcpy(bp, pl, payload);
+typedef struct payload {
+    char pl[0x10];
+};
+struct payload g_pl;
+void send_reply(int fd, int payload)
+{
+    char *bp = malloc(payload);
+    memcpy(bp, g_pl.pl, payload);
+    write(fd, bp, payload);
+}
 \end{lstlisting}
 \end{sectionbox}
 
@@ -721,15 +715,13 @@ int main(int argc, char **argv)
 \textbf{Uninitialized Memory Bugs}
 \begin{enumerate}
     \item Use of uninitialized memory can be problematic if the attacker can replace the memory on the stack or heap with their data via a groom or spray.
-    \item In the following example, imaging an attacker can invoke each of these functions at any time.
 \end{enumerate}
 \begin{sectionbox}
 \begin{lstlisting}[language=C, caption={Memory Used Unintialized}]
 $define ARRAY_SIZE 0x100
 $define STR_SIZE 0x10
 char **g_array;
-void alloc_array(int len)
-{
+void alloc_array(int len) {
     if (!g_array) {
         g_array = malloc(ARRAY_SIZE * sizeof(char*));
         if (!g_array) return;
@@ -740,22 +732,64 @@ void alloc_array(int len)
     }
 }
 
-void use_array()
-{
+void use_array() {
     if (!g_array) return;
     for(int i = 0; i < ARRAY_SIZE; i++) {
         printf("\%s\n", g_array[i]);
     }
 }
 
-void free_array()
-{
+void free_array() {
     if (!g_array) return;
     for(int i = 0; i < ARRAY_SIZE; i++) {
         free(g_array[i]);
     }
     g_array[0] = NULL; // is this sufficient?
 }
+
+int main() {
+    alloc_array(10);
+    free_array(10);
+    use_array(10);
+}
+\end{lstlisting}
+\end{sectionbox}
+
+%----------------------------------------------------------------------------------------
+
+% integer promotions
+\textbf{Integer Promotion Bugs}
+\begin{enumerate}
+    \item Another good exercise which will help you improve your source auditing code is knowing about integer promotion rules. I recommend using the quiz at => pleasestopnamingvulnerabilities.com/integers.html.
+    \item As a rule of thumb, the compiler emit assembly code so that the integers are promoted to the widest type and then compared.
+    \item Integer ranges:
+        \begin{enumerate}
+            \item signed char: -127 to 127
+            \item unsigned char: 0 to 255
+            \item signed short: -32767 to 32767
+            \item unsigned short: 0 to 65535
+            \item signed int: -2147483647 to 2147483647 */
+        \end{enumerate}
+\end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Memory Used Unintialized}]
+//Why does this give a strange, large integer number and not 255?
+unsigned char x = 0;
+unsigned char y = 1;
+printf("\%u\n", x - y); 
+
+// Why does this give "-1 is larger than 0"?
+unsigned int a = 1;
+signed int b = -2;
+if(a + b > 0)
+  puts("-1 is larger than 0");
+
+// Why does changing the type in the above example to short fix the problem?
+unsigned short a = 1;
+signed short b = -2;
+if(a + b > 0)
+  puts("-1 is larger than 0"); // will not print
 \end{lstlisting}
 \end{sectionbox}
 
