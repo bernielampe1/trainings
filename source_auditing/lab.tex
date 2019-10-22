@@ -1,0 +1,133 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        Author: Bernard Lampe
+%    Copyright: Raytheon CODEX 2019
+%   Source auditing lab material
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% import template
+\documentclass[12pt]{Training}
+
+% import packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+%----------------------------------------------------------------------------------------
+
+% set document info
+\title{Source Auditing Lab Material}
+\author{Dr. Bernard Lampe}
+\class{Introduction to Vulnerability Research Lab}
+\institute{Raytheon CODEX}
+\date{October 17th, 2019}
+
+%----------------------------------------------------------------------------------------
+
+% set code listing style
+\lstset{
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    tabsize=2,
+    keywordstyle=\color{blue}\ttfamily,
+    stringstyle=\color{red}\ttfamily,
+    commentstyle=\color{green}\ttfamily,
+    morecomment=[l][\color{magenta}]{\#}
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+% print title
+\maketitle
+
+\section*{Introduction - Webservers}
+\begin{enumerate}
+    \item Popular webserver implementations are Apache, Microsofts IIS and Nginx. These are mature and quite complicated programs.
+    \item This lab material is focused on AppWeb which is an HTTP server supporting many embedded devices.
+    \item Appweb is specifically designed to be incorporated into small IoT or lights out (LO) management devices.
+    \item In addition to HTTP, web servers are also augmented with server side scripting lanuages to include Perl, Python, Ruby, Java, PHP, ASP and many others.
+\end{enumerate}
+
+\section*{HTTP Overview}
+\begin{enumerate}
+    \item Hypertext Transfer Protocol (HTTP) is a text based (versions 0.9, 1.0, 1.1) and binary based (versions 2.0 and 3.0) that is used to request resources from a server.
+    \item HTTP/1.1 was first documented in RFC 2068 in 1997. That specification was obsoleted by RFC 2616 in 1999, which was likewise replaced by the RFC 7230 family of RFCs in 2014.
+    \item HTTP/2 is a more efficient expression of HTTP's semantics "on the wire", and was published in 2015; it is now supported by major web servers and browsers over Transport Layer Security (TLS) using an Application-Layer Protocol Negotiation (ALPN) extension where TLS 1.2 or newer is required.
+    \item HTTP/3 is the successor to HTTP/2, using UDP instead of TCP for the underlying transport protocol. Like HTTP/2, it does not obsolete previous major versions of the protocol. HTTP/3 support was added in Cloudflare, Google Chrome, and Mozilla Firefox on 26 September 2019.
+    \item HTTP supports the commands of GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT and PATCH
+    \item WebDav augments these commands with many more commands such as COPY, LOCK, MKCOL, MOVE, PROFIND, PROPPATCH, and UNLOCK.
+    \item Most implemententation only support a subset of these commands.
+\end{enumerate}
+
+\section*{Sample HTTP 1.1 GET Request}
+\begin{sectionbox}
+\begin{lstlisting}
+GET /index.html HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+Host: www.example.com
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+\end{lstlisting}
+\end{sectionbox}
+
+\section*{Sample HTTP 1.1 POST Request}
+\begin{sectionbox}
+\begin{lstlisting}
+POST /cgi-bin/process.cgi HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+Host: www.exmaple.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+
+licenseID=string&content=string&/paramsXML=string
+\end{lstlisting}
+\end{sectionbox}
+
+\section*{Indexing Source Projects}
+\begin{enumerate}
+    \item Install exuberant ctags
+        \begin{enumerate}
+            \item On debian "sudo apt-get install exuberant-ctags"
+        \end{enumerate}
+    \item Run the ctags -R . 
+    \item A "tags" file should be placed in the current directory.
+\end{enumerate}
+
+\section*{Start Auditing AppWeb}
+\begin{enumerate}
+    \item Begin by looking at the protocol. Here we see keywords such as "Connection:", "Accept-Language:", "Host", "User-Agent:". We want to look for those key words in the source code to determine where the requests are parsed. Then we can audit the code around it. Go ahead and find the file and functions that do header parsing.
+\end{enumerate}
+
+\section*{Find Calling Functions and Structure Definitions}
+\begin{enumerate}
+    \item Once you've found the <src dir>/http/httpLib.c:parseHeaders() function, use ctags or cscope to find the functions which call this function.
+    \item Also find the definitions of the HttpConn and HttpPacket class definitions.
+\end{enumerate}
+
+\section*{Continue Auditing}
+\begin{enumerate}
+    \item Walk the call stack. What functions call the parseHeaders() and parseIncoming() and httpProtocol().
+    \item What do these functions do? Why did the developer split the functionality up this way?
+    \item Audit the parsing of all headers.
+    \item What HTTP commands does the server implement?
+\end{enumerate}
+
+\section*{Explore Other Tools}
+\begin{enumerate}
+    \item Download another version of Appweb (https://www.embedthis.com/) and use meld to compare files across the versions.
+    \item Install Eclipse with the C++ extension and index the project.
+    \item Install and use cscope with vim.
+\end{enumerate}
+
+\end{document}
+
