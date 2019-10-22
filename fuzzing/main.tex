@@ -1,0 +1,87 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        Author: Bernard Lampe
+%    Copyright: Raytheon CODEX 2019
+%   Source auditing lecture material
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% import template
+\documentclass[12pt]{Training}
+
+% import packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+%-------------------------------------------------------------------------------
+
+% set document info
+\title{Fuzzing Lecture Material}
+\author{Dr. Bernard Lampe}
+\class{Introduction to Vulnerability Research}
+\institute{Raytheon CODEX}
+\date{October 22th, 2019}
+
+%-------------------------------------------------------------------------------
+
+% set code listing style
+\lstset{
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    tabsize=2,
+    keywordstyle=\color{blue}\ttfamily,
+    stringstyle=\color{red}\ttfamily,
+    commentstyle=\color{green}\ttfamily,
+    morecomment=[l][\color{magenta}]{\#}
+}
+
+%-------------------------------------------------------------------------------
+
+\begin{document}
+
+% print title
+\maketitle
+
+%-------------------------------------------------------------------------------
+
+\section*{Introduction}
+\begin{enumerate}
+	\item Talk about fuzzing...
+\end{enumerate}
+
+\section*{Section 1}
+\begin{enumerate}
+	\item Section 1 stuff...
+\end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Code Example Listing}]
+int main()
+{
+    printf("hello worldz\n");
+    return 0;
+}
+\end{lstlisting}
+\end{sectionbox}
+
+\section*{Section 2}
+\begin{enumerate}
+	\item Section 2 stuff...
+\end{enumerate}
+
+%-------------------------------------------------------------------------------
+
+\section*{Conclusion}
+Conclusions here....
+
+\section*{References}
+\begin{enumerate}
+	\item www.fuzzingbook.com
+\end{enumerate}
+
+\end{document}
+
