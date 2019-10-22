@@ -50,12 +50,90 @@
 
 \section*{Introduction}
 \begin{enumerate}
-	\item Talk about fuzzing...
+    \item Most important question is "When is using fuzzing appropriate/productive?" and "If fuzzing is appropriate, what type of fuzzing should be used?"
+	\item Fuzzing has low false positives.
+    \item Fuzzing has hard time getting past encryption, hashing or compression algorithms. Usually patched out or fuzzing afterwards.
+
+	\item Fuzzing results in an unminimized input file that triggers a bug.
+	\item Must triage outcomes (crashes, hangs) first.
+	\item Root causing can be hard. Minimize input first by bi-secting input.
 \end{enumerate}
 
-\section*{Section 1}
+\section*{Fuzzing Theory}
 \begin{enumerate}
-	\item Section 1 stuff...
+	\item Dump fuzzing, black box. No knowledge. Low penetration.
+	\item Smart fuzzing, white box. Complete re-implement parser. Max penetration.
+    \item Need a mix of both to hit unknown code path in unexpected ways.
+
+    \item Fuzzing can be seen as following compiler design in reverse. (Lexical analysis, syntax analysis, semantic analysis, code generator, optimizer, assembly generation.)
+	\item Fuzzing as a search general problem.
+	\item Fuzzing as a maze analogy.
+	\item Fuzzing as a directed search problem (A*).
+\end{enumerate}
+
+\section*{Mutation Fuzzing}
+\begin{enumerate}
+    \item Binary corruptors.
+	\item When should a mutation fuzzer be used?
+\end{enumerate}
+
+\section*{Generative Fuzzing}
+\begin{enumerate}
+	\item Grammar, generators...
+	\item When should a generative fuzzer be used?
+\end{enumerate}
+
+\section*{Instrumentation}
+\begin{enumerate}
+	\item Instrumentation is about how to detect an software deficiency.
+	\item Crashes
+	\item Hangs
+	\item Difficult to 
+\end{enumerate}
+
+\section*{Corpus Distillation}
+\begin{enumerate}
+	\item Section 2 stuff...
+\end{enumerate}
+
+\section*{Code Coverage}
+\begin{enumerate}
+	\item Section 2 stuff...
+\end{enumerate}
+
+\section*{Feedback Fuzzing}
+\begin{enumerate}
+	\item AFL
+	\item KASAN
+\end{enumerate}
+
+\section*{Concolic and Symbolic Fuzzing}
+\begin{enumerate}
+    \item Stuff about concolic fuzzing...
+\end{enumerate}
+
+\section*{Scaling Fuzzing Issues}
+\begin{enumerate}
+	\item Reproducibility/Determinism
+	\item 
+\end{enumerate}
+
+\section*{Fuzzing deeper}
+\begin{enumerate}
+    \item Theory about skipping outter layers...
+\end{enumerate}
+
+\section*{Domain specific fuzzing}
+\begin{enumerate}
+    \item Media fuzzing
+    \item Javascript (AST Fuzzing)
+    \item Fuzzing network protocols (http, https, dhcp, ntp, dns, ...)
+    \item Fuzzing other stuff....
+\end{enumerate}
+
+\section*{Open Source Fuzzers}
+\begin{enumerate}
+    \item Radamsa, 
 \end{enumerate}
 
 \begin{sectionbox}
@@ -67,11 +145,6 @@ int main()
 }
 \end{lstlisting}
 \end{sectionbox}
-
-\section*{Section 2}
-\begin{enumerate}
-	\item Section 2 stuff...
-\end{enumerate}
 
 %-------------------------------------------------------------------------------
 
