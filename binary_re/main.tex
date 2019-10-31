@@ -1,0 +1,117 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        Author: Bernard Lampe
+%    Copyright: Raytheon CODEX 2019
+%   Source auditing lecture material
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% import template
+\documentclass[12pt]{Training}
+
+% import packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+%-------------------------------------------------------------------------------
+
+% set document info
+\title{Binary Reverse Engineering Lecture Material}
+\author{Dr. Bernard Lampe}
+\class{Introduction to Vulnerability Research}
+\date{October 31th, 2019}
+
+%-------------------------------------------------------------------------------
+
+% set code listing style
+\lstset{
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    tabsize=2,
+    keywordstyle=\color{blue}\ttfamily,
+    stringstyle=\color{red}\ttfamily,
+    commentstyle=\color{green}\ttfamily,
+    morecomment=[l][\color{magenta}]{\#}
+}
+
+%-------------------------------------------------------------------------------
+
+\begin{document}
+
+% print title
+\maketitle
+
+%-------------------------------------------------------------------------------
+
+\section*{Introduction}
+\begin{enumerate}
+    \item Why reverse?
+    \item When would you reverse (give example situations)?
+    \item How does reversing fit into the larger VR picture?
+    \item What are the legal aspects of reversing?
+\end{enumerate}
+
+\section*{Overview of How Compilers Work}
+\begin{enumerate}
+    \item Go from C to binary and back. Give them an idea of what happens under the hood.
+    \item Front end of complier, (Lexical analysis (lex), grammar(yacc), semantic analysis(type checking)) 
+    \item Back end of compiler, (optimization, register spilling, code generation)
+\end{enumerate}
+
+\section*{Tools}
+\begin{enumerate}
+    \item Reversing tools like Radare, IDA, Binja, objdump, etc
+\end{enumerate}
+
+\section*{Architectures x86, x86\_64, ARM, ARM64, MIPS, PPC}
+\begin{enumerate}
+    \item Things about arch's.
+\end{enumerate}
+
+\section*{Disassemblers}
+\begin{enumerate}
+    \item Possibly show how disassembers are written.
+\end{enumerate}
+
+\section*{Decompilers}
+\begin{enumerate}
+    \item Possibly show how decompilations are not unique.
+    \item Show pitfalls of decompilers, like function inlining and optimizations
+\end{enumerate}
+
+\section*{Reversing Examples}
+\begin{enumerate}
+    \item Example x86, x86\_64, ARM, ARM64, MIPS and PPC. Maybe compiler a non-trivial (but smaller) program to show how it goes to assembly and the differences in each.
+    \item I'd like real world examples here.
+    \item Perhaps tear down an embedded system and then show the following reversing.
+    \item Show example of an application process doing network stuff.
+    \item Show example of reversing the bootloader to setup a chip.
+    \item Other ideas, reverse a proprietary filesystem, proprietary algrorithm?
+\end{enumerate}
+
+\begin{sectionbox}
+\begin{lstlisting}[language=C, caption={Code Example Listing}]
+int main()
+{
+    printf("hello worldz\n");
+    return 0;
+}
+\end{lstlisting}
+\end{sectionbox}
+
+%-------------------------------------------------------------------------------
+
+\section*{Conclusion}
+Conclusions here....
+
+\section*{References}
+\begin{enumerate}
+	\item references here....
+\end{enumerate}
+
+\end{document}
+
